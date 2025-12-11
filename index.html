@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grok Meme Hub</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+        .hidden { display: none; }
+        .card { border: 1px solid #ddd; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; }
+        input, button { padding: 0.5rem; margin: 0.25rem 0; width: 100%; box-sizing: border-box; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+
+    <h1>🤖 Grok Meme Hub</h1>
+
+    <div id="auth-section">
+        <div class="card">
+            <h2>Login</h2>
+            <input type="email" id="login-email" placeholder="Email">
+            <input type="password" id="login-pass" placeholder="Password">
+            <button onclick="login()">Login</button>
+        </div>
+        <div class="card">
+            <h2>Register</h2>
+            <input type="text" id="reg-user" placeholder="Username">
+            <input type="email" id="reg-email" placeholder="Email">
+            <input type="password" id="reg-pass" placeholder="Password">
+            <button onclick="register()">Register</button>
+            <p id="error-msg" class="error"></p>
+        </div>
+    </div>
+
+    <div id="app-section" class="hidden">
+        <p>Welcome, <b id="display-name">User</b>! <button onclick="logout()" style="width:auto; background:red;">Logout</button></p>
+        
+        <h2>Latest Memes</h2>
+        <button onclick="loadMemes()">Refresh Memes</button>
+        <div id="meme-container"></div>
+    </div>
+
+    <script>
+        // 👇👇👇 REPLACE THIS URL WITH YOUR RENDER BACKEND URL 👇👇👇
+        const API_URL = "https://fsd-backend-alvin-final.onrender.com"; 
+
+        async function register() {
+            const username = document.getElementById('reg-user').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-pass').value;
+
+            // Get Location (Latitude/Longitude) for the exam requirement
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                const lat = position.coords.latitude;
+                const long = position.coords.longitude;
+
+                try {
+                    const res = await fetch(`${API_URL}/api/register`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, email, password, lat, long })
+                    });
+                    const data = await res.json();
+                    if (res.ok) alert("Registered! You can now login.");
+                    else alert("Error: " + data.error);
+                } catch (err) { alert("Connection Error: " + err.message); }
+            }, () => alert("Please allow location access to register!"));
+        }
+
+        async function login() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-pass').value;
+
+            try {
+                const res = await fetch(`${API_URL}/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    localStorage.setItem('token', data.token);
+                    document.getElementById('display-name').innerText = data.username;
+                    document.getElementById('auth-section').classList.add('hidden');
+                    document.getElementById('app-section').classList.remove('hidden');
+                    loadMemes();
+                } else {
+                    alert("Login Failed: " + data.error);
+                }
+            } catch (err) { alert("Connection Error: " + err.message); }
+        }
+
+        async function loadMemes() {
+            const res = await fetch(`${API_URL}/api/memes`);
+            const memes = await res.json();
+            const container = document.getElementById('meme-container');
+            container.innerHTML = memes.map(meme => `
+                <div class="card">
+                    <h3>${meme.title}</h3>
+                    <p>${meme.caption}</p>
+                    <small>Category: ${
