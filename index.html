@@ -4,101 +4,219 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grok Meme Hub</title>
-    <style>
-        body { font-family: sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
-        .hidden { display: none; }
-        .card { border: 1px solid #ddd; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; }
-        input, button { padding: 0.5rem; margin: 0.25rem 0; width: 100%; box-sizing: border-box; }
-        button { background: #007bff; color: white; border: none; cursor: pointer; }
-        button:hover { background: #0056b3; }
-        .error { color: red; }
-    </style>
-</head>
-<body>
-
-    <h1>🤖 Grok Meme Hub</h1>
-
-    <div id="auth-section">
-        <div class="card">
-            <h2>Login</h2>
-            <input type="email" id="login-email" placeholder="Email">
-            <input type="password" id="login-pass" placeholder="Password">
-            <button onclick="login()">Login</button>
-        </div>
-        <div class="card">
-            <h2>Register</h2>
-            <input type="text" id="reg-user" placeholder="Username">
-            <input type="email" id="reg-email" placeholder="Email">
-            <input type="password" id="reg-pass" placeholder="Password">
-            <button onclick="register()">Register</button>
-            <p id="error-msg" class="error"></p>
-        </div>
-    </div>
-
-    <div id="app-section" class="hidden">
-        <p>Welcome, <b id="display-name">User</b>! <button onclick="logout()" style="width:auto; background:red;">Logout</button></p>
-        
-        <h2>Latest Memes</h2>
-        <button onclick="loadMemes()">Refresh Memes</button>
-        <div id="meme-container"></div>
-    </div>
-
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
     <script>
-        // 👇👇👇 REPLACE THIS URL WITH YOUR RENDER BACKEND URL 👇👇👇
+        tailwind.config = { darkMode: 'class' }
+    </script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-white transition-colors duration-300">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // ⚠️ REPLACE THIS WITH YOUR RENDER BACKEND URL ⚠️
         const API_URL = "https://fsd-backend-alvin-final.onrender.com"; 
 
-        async function register() {
-            const username = document.getElementById('reg-user').value;
-            const email = document.getElementById('reg-email').value;
-            const password = document.getElementById('reg-pass').value;
+        const { useState, useEffect } = React;
 
-            // Get Location (Latitude/Longitude) for the exam requirement
-            navigator.geolocation.getCurrentPosition(async (position) => {
-                const lat = position.coords.latitude;
-                const long = position.coords.longitude;
+        function App() {
+            const [user, setUser] = useState(null);
+            const [view, setView] = useState('home'); // home, login, register, upload
+            const [darkMode, setDarkMode] = useState(false);
 
-                try {
-                    const res = await fetch(`${API_URL}/api/register`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ username, email, password, lat, long })
-                    });
-                    const data = await res.json();
-                    if (res.ok) alert("Registered! You can now login.");
-                    else alert("Error: " + data.error);
-                } catch (err) { alert("Connection Error: " + err.message); }
-            }, () => alert("Please allow location access to register!"));
+            useEffect(() => {
+                if (localStorage.getItem('token')) setUser({ username: localStorage.getItem('username') });
+                // Service Worker Registration
+                if ('serviceWorker' in navigator) navigator.serviceWorker.register('/service-worker.js');
+            }, []);
+
+            const toggleDark = () => {
+                setDarkMode(!darkMode);
+                document.documentElement.classList.toggle('dark');
+            };
+
+            return (
+                <div className={darkMode ? "dark" : ""}>
+                    {/* NAVBAR */}
+                    <nav className="p-4 bg-blue-600 text-white flex justify-between items-center shadow-md">
+                        <h1 className="text-2xl font-bold cursor-pointer" onClick={() => setView('home')}>
+                            <i className="fas fa-robot mr-2"></i>GrokMemeHub
+                        </h1>
+                        <div className="flex items-center gap-4">
+                            <button onClick={toggleDark} className="p-2 rounded hover:bg-blue-700">
+                                <i className={`fas ${darkMode ? 'fa-sun' : 'fa-moon'}`}></i>
+                            </button>
+                            {user ? (
+                                <>
+                                    <span className="hidden md:inline">Hello, {user.username}</span>
+                                    <button onClick={() => setView('upload')} className="bg-green-500 px-3 py-1 rounded hover:bg-green-600">Upload</button>
+                                    <button onClick={() => { localStorage.clear(); setUser(null); setView('login'); }} className="bg-red-500 px-3 py-1 rounded hover:bg-red-600">Logout</button>
+                                </>
+                            ) : (
+                                <button onClick={() => setView('login')} className="bg-white text-blue-600 px-3 py-1 rounded font-bold">Login</button>
+                            )}
+                        </div>
+                    </nav>
+
+                    {/* HERO SECTION (Video/Audio) */}
+                    {view === 'home' && (
+                        <div className="p-6 text-center bg-gradient-to-r from-blue-500 to-purple-500 text-white">
+                            <h2 className="text-3xl font-bold mb-2">Welcome to the AI Meme Future</h2>
+                            <p className="mb-4">"Why Memes Rule AI" - Audio Clip:</p>
+                            <audio controls className="mx-auto mb-4 w-1/2">
+                                <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg" />
+                            </audio>
+                        </div>
+                    )}
+
+                    {/* MAIN CONTENT */}
+                    <div className="container mx-auto p-4">
+                        {view === 'home' && <MemeFeed user={user} />}
+                        {view === 'login' && <AuthForm type="login" setUser={setUser} setView={setView} />}
+                        {view === 'register' && <AuthForm type="register" setUser={setUser} setView={setView} />}
+                        {view === 'upload' && <UploadForm setView={setView} />}
+                    </div>
+                </div>
+            );
         }
 
-        async function login() {
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-pass').value;
+        function MemeFeed({ user }) {
+            const [memes, setMemes] = useState([]);
+            const [search, setSearch] = useState("");
 
-            try {
-                const res = await fetch(`${API_URL}/api/login`, {
+            const fetchMemes = async (query = "") => {
+                const res = await fetch(`${API_URL}/api/memes?search=${query}`);
+                const data = await res.json();
+                setMemes(data);
+            };
+
+            useEffect(() => { fetchMemes(); }, []);
+
+            const reactToMeme = async (memeId, type) => {
+                if (!user) return alert("Login to react!");
+                await fetch(`${API_URL}/api/reactions`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
+                    body: JSON.stringify({ meme_id: memeId, type, token: localStorage.getItem('token') })
                 });
-                const data = await res.json();
-                if (res.ok) {
-                    localStorage.setItem('token', data.token);
-                    document.getElementById('display-name').innerText = data.username;
-                    document.getElementById('auth-section').classList.add('hidden');
-                    document.getElementById('app-section').classList.remove('hidden');
-                    loadMemes();
-                } else {
-                    alert("Login Failed: " + data.error);
-                }
-            } catch (err) { alert("Connection Error: " + err.message); }
+                fetchMemes(); // Refresh to show new count
+            };
+
+            return (
+                <div>
+                    <div className="flex gap-2 mb-4">
+                        <input type="text" placeholder="Search memes..." className="border p-2 w-full rounded dark:bg-gray-800" 
+                            onChange={(e) => setSearch(e.target.value)} />
+                        <button onClick={() => fetchMemes(search)} className="bg-blue-600 text-white px-4 rounded">Search</button>
+                        <button onClick={() => fetchMemes("")} className="bg-gray-500 text-white px-4 rounded">Refresh</button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {memes.map(meme => (
+                            <div key={meme.id} className="bg-white dark:bg-gray-800 p-4 rounded shadow hover:shadow-lg transition">
+                                <img src={meme.image_url} alt={meme.title} className="w-full h-48 object-cover rounded mb-2" />
+                                <h3 className="font-bold text-lg">{meme.title}</h3>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">{meme.caption}</p>
+                                <div className="flex justify-between items-center mt-3">
+                                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">{meme.category}</span>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => reactToMeme(meme.id, 'laugh')} className="text-yellow-500">😂</button>
+                                        <button onClick={() => reactToMeme(meme.id, 'robot')} className="text-gray-500">🤖</button>
+                                        <span className="text-sm font-bold">{meme.reaction_count || 0}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
         }
 
-        async function loadMemes() {
-            const res = await fetch(`${API_URL}/api/memes`);
-            const memes = await res.json();
-            const container = document.getElementById('meme-container');
-            container.innerHTML = memes.map(meme => `
-                <div class="card">
-                    <h3>${meme.title}</h3>
-                    <p>${meme.caption}</p>
-                    <small>Category: ${
+        function AuthForm({ type, setUser, setView }) {
+            const [email, setEmail] = useState("");
+            const [password, setPassword] = useState("");
+            const [username, setUsername] = useState("");
+
+            const handleSubmit = async () => {
+                // GeoLocation (Exam Requirement)
+                navigator.geolocation.getCurrentPosition(async (pos) => {
+                    const endpoint = type === 'login' ? '/api/login' : '/api/register';
+                    const body = { email, password, lat: pos.coords.latitude, long: pos.coords.longitude };
+                    if (type === 'register') body.username = username;
+
+                    const res = await fetch(`${API_URL}${endpoint}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+                    const data = await res.json();
+                    
+                    if (res.ok) {
+                        if (type === 'login') {
+                            localStorage.setItem('token', data.token);
+                            localStorage.setItem('username', data.username);
+                            setUser({ username: data.username });
+                            setView('home');
+                        } else {
+                            alert("Registered! Now Login.");
+                            setView('login');
+                        }
+                    } else {
+                        alert("Error: " + data.error);
+                    }
+                }, () => alert("Allow Location!"));
+            };
+
+            return (
+                <div className="max-w-md mx-auto bg-white dark:bg-gray-800 p-6 rounded shadow mt-10">
+                    <h2 className="text-2xl font-bold mb-4 capitalize">{type}</h2>
+                    {type === 'register' && <input className="border p-2 w-full mb-2 dark:bg-gray-700" placeholder="Username" onChange={e => setUsername(e.target.value)} />}
+                    <input className="border p-2 w-full mb-2 dark:bg-gray-700" placeholder="Email" onChange={e => setEmail(e.target.value)} />
+                    <input className="border p-2 w-full mb-4 dark:bg-gray-700" type="password" placeholder="Password" onChange={e => setPassword(e.target.value)} />
+                    <button onClick={handleSubmit} className="bg-blue-600 text-white w-full p-2 rounded capitalize">{type}</button>
+                    <p className="mt-4 text-center text-blue-500 cursor-pointer" onClick={() => setView(type === 'login' ? 'register' : 'login')}>
+                        {type === 'login' ? "Need an account? Register" : "Have an account? Login"}
+                    </p>
+                </div>
+            );
+        }
+
+        function UploadForm({ setView }) {
+            const [title, setTitle] = useState("");
+            const [caption, setCaption] = useState("");
+            const [url, setUrl] = useState("");
+            const [category, setCategory] = useState("AI");
+
+            const handleUpload = async () => {
+                const res = await fetch(`${API_URL}/api/memes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, caption, image_url: url, category, token: localStorage.getItem('token') })
+                });
+                if (res.ok) { alert("Uploaded!"); setView('home'); }
+            };
+
+            return (
+                <div className="max-w-md mx-auto bg-white dark:bg-gray-800 p-6 rounded shadow mt-10">
+                    <h2 className="text-2xl font-bold mb-4">Upload Meme</h2>
+                    <input className="border p-2 w-full mb-2 dark:bg-gray-700" placeholder="Title" onChange={e => setTitle(e.target.value)} />
+                    <input className="border p-2 w-full mb-2 dark:bg-gray-700" placeholder="Image URL (Paste any image link)" onChange={e => setUrl(e.target.value)} />
+                    <textarea className="border p-2 w-full mb-2 dark:bg-gray-700" placeholder="Caption (AI Puns...)" onChange={e => setCaption(e.target.value)} />
+                    <select className="border p-2 w-full mb-4 dark:bg-gray-700" onChange={e => setCategory(e.target.value)}>
+                        <option>AI</option><option>Grok</option><option>Tech</option>
+                    </select>
+                    <button onClick={handleUpload} className="bg-green-600 text-white w-full p-2 rounded">Post Meme</button>
+                    <button onClick={() => setView('home')} className="mt-2 w-full text-gray-500">Cancel</button>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
