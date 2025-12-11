@@ -118,4 +118,24 @@ app.post('/api/reactions', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
+
+app.delete('/api/memes/:id', async (req, res) => {
+    const { token } = req.body;
+    try {
+        const decoded = jwt.verify(token, SECRET_KEY);
+        // Only delete if the user owns the meme
+        const [result] = await pool.query('DELETE FROM memes WHERE id = ? AND uploader_id = ?', [req.params.id, decoded.id]);
+        if (result.affectedRows === 0) return res.status(403).json({ error: "Not authorized or meme not found" });
+        res.json({ message: "Meme Deleted!" });
+    } catch (err) { res.status(401).json({ error: "Unauthorized" }); }
+});
+
+app.put('/api/memes/:id', async (req, res) => {
+    const { title, caption, token } = req.body;
+    try {
+        const decoded = jwt.verify(token, SECRET_KEY);
+        await pool.query('UPDATE memes SET title = ?, caption = ? WHERE id = ? AND uploader_id = ?', [title, caption, req.params.id, decoded.id]);
+        res.json({ message: "Meme Updated!" });
+    } catch (err) { res.status(401).json({ error: "Unauthorized" }); }
+});
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
