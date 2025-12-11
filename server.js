@@ -11,7 +11,7 @@ const DB_CONFIG = {
     user: 'avnadmin',
     password: 'AVNS_8Xagj6qlvXhdpM6ArAB', 
     database: 'defaultdb',
-    ssl: { rejectUnauthorized: true }
+    ssl: { rejectUnauthorized: false }
 };
 
 const pool = mysql.createPool(DB_CONFIG);
